@@ -34,6 +34,14 @@ from util.visualizer import save_images
 from util import html
 
 
+from skimage.measure import compare_psnr as PSNR
+from skimage.measure import compare_ssim as SSIM
+from skimage.io import imread
+from skimage.transform import resize
+
+
+
+
 if __name__ == '__main__':
     opt = TestOptions().parse()  # get test options
     # hard-code some parameters for test
@@ -45,6 +53,7 @@ if __name__ == '__main__':
     dataset = create_dataset(opt)  # create a dataset given opt.dataset_mode and other options
     model = create_model(opt)      # create a model given opt.model and other options
     model.setup(opt)               # regular setup: load and print networks; create schedulers
+    print(opt)
     # create a website
     web_dir = os.path.join(opt.results_dir, opt.name, '{}_{}'.format(opt.phase, opt.epoch))  # define the website directory
     if opt.load_iter > 0:  # load_iter is 0 by default
@@ -67,3 +76,68 @@ if __name__ == '__main__':
             print('processing (%04d)-th image... %s' % (i, img_path))
         save_images(webpage, visuals, img_path, aspect_ratio=opt.aspect_ratio, width=opt.display_winsize)
     webpage.save()  # save the HTML
+    orig_dir = "./datasets/deblur/group_truth"
+    blur_dir = "./datasets/deblur/testA"
+    result_dir = "./datasets/deblur/deblur_out"
+    orig_list = sorted(os.listdir(orig_dir))
+    deblur_list = sorted(os.listdir(result_dir)) 
+    blur_list = sorted(os.listdir(blur_dir)) 
+    
+    psnr = []
+    ssim = []
+    percp = []
+    blur_psnr = []
+    blur_ssim = []
+    blur_percp = []
+
+    for (deblur_img_name, orig_img_name, blur_img_name) in zip(deblur_list, orig_list, blur_list):
+        deblur_img_name = os.path.join(result_dir,deblur_img_name)
+        orig_img_name = os.path.join(orig_dir,orig_img_name)
+        blur_img_name = os.path.join(blur_dir, blur_img_name)
+        deblur_img = imread(deblur_img_name)
+        orig_img = imread(orig_img_name)
+        blur_img = imread(blur_img_name)
+        try:
+            psnr.append(PSNR(deblur_img, orig_img))
+            ssim.append(SSIM(deblur_img, orig_img, multichannel=True))
+            blur_psnr.append(PSNR(blur_img, orig_img))
+            blur_ssim.append(SSIM(blur_img, orig_img, multichannel=True))
+        except ValueError:
+            print(orig_img_name)
+        
+        #with torch.no_grad():
+        #    temp = pLoss.getloss(deblur_img,orig_img)
+        #    temp2 = pLoss.getloss(blur_img,orig_img)
+        #percp.append(temp)
+        #blur_percp.append(temp2)
+        
+    print("average psnr vs clear image is ", sum(psnr)/len(psnr))
+    print("average ssim vs blur image is ", sum(ssim)/len(ssim))
+    #print(sum(percp)/len(percp))
+    
+    print("average psnr vs clear image is ", sum(blur_psnr)/len(psnr))
+    print("average ssim vs blur image is ", sum(blur_ssim)/len(ssim))
+    #print(sum(blur_percp)/len(percp))
+    #return
+
+
+    # test
+    # print('\n--- testing ---')
+    # for idx1, (img1,img_name) in enumerate(loader):
+    #     print('{}/{}'.format(idx1, len(loader)))
+    #     img1 = img1.cuda(opts.gpu).detach()
+    #     with torch.no_grad():
+    #         img = model.test_forward(img1, a2b=opts.a2b)
+    #     img_name = img_name[0].split('/')
+    #     img_name = img_name[-1]
+    #     save_imgs(img, img_name, result_dir)
+  
+    #  # evaluate metrics
+    # if opts.percep == 'default':
+    #     pLoss = PerceptualLoss(nn.MSELoss(),p_layer=36)
+    # elif opts.percep == 'face':
+    #     self.perceptualLoss = networks.PerceptualLoss16(nn.MSELoss(),p_layer=30)
+    # else:
+    #     self.perceptualLoss = networks.MultiPerceptualLoss(nn.MSELoss())
+    
+    

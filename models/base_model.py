@@ -38,6 +38,7 @@ class BaseModel(ABC):
             torch.backends.cudnn.benchmark = True
         self.loss_names = []
         self.model_names = []
+        print("model names are ", self.model_names)
         self.visual_names = []
         self.optimizers = []
         self.image_paths = []
@@ -97,7 +98,6 @@ class BaseModel(ABC):
 
     def test(self):
         """Forward function used in test time.
-
         This function wraps <forward> function in no_grad() so we don't save intermediate steps for backprop
         It also calls <compute_visuals> to produce additional visualization results
         """
@@ -149,6 +149,7 @@ class BaseModel(ABC):
         for name in self.model_names:
             if isinstance(name, str):
                 save_filename = '%s_net_%s.pth' % (epoch, name)
+                print("save file names are ", save_filename)
                 save_path = os.path.join(self.save_dir, save_filename)
                 net = getattr(self, 'net' + name)
 
